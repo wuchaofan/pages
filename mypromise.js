@@ -46,6 +46,7 @@ class MyPromise{
     })
    }
    static resolve(value){
+      
      return new MyPromise((_resolve, _reject)=>{
        _resolve(value)
      })
