@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>MVVM 1</title>
+  <style>
+    .bgred{
+      background-color: red;
+      color: white;
+    }
+    .bgblack{
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div fy-class="{bgred: value, bgblack: !value}">{{hello}}</div>
+    <a href="javascript:void(0);" fyon-click="submit">change background</a>
+    <div>
+        <a href="javascript:void(0);" fyon-click="changeText">change 你好</a>        
+    </div>
+    <div>
+      <input type="text" fyon-change="changehello">
+    </div>
+  </div>
+    
+  <script>
+
+    class fyClass{
+      constructor(fly){
+        this.fly = fly
+      }
+      deal(item, attrV){
+        return () =>{
+          this._valueRecursive(item, attrV)
+        }
+      }
+      _valueRecursive(item, attrV){
+
+        let _classF = new Function(`with(this){ return (${attrV})}`)
+        let value = _classF.bind(this.fly)()
+        let oldv = _classF.bind(this.fly._olddata)()
+        this._rescursive(oldv, item, 'remove')
+        this._rescursive(value, item, 'add')
+      }
+
+      _rescursive(value, item, op){
+        if(typeof value === 'string'){
+          item.classList[op](value)
+          return
+        }else if(value instanceof Array){
+          value.forEach((sv) => {
+            _rescursive(sv, item)
+          })
+        }else{
+          value && Object.keys(value).forEach((key) => {
+            value[key] ?  item.classList.add(key) : item.classList.remove(key)
+          })
+          return
+        }
+      }
+    }
+
+    class FyBrace2{
+      constructor(fly){
+        this.fly = fly
+        this.re = /{{\w+}}/g
+
+        this.matchList = []
+      }
+      deal(item, matchtext) {
+        return () => {
+          let _cb = new Function(`with(this){ return (${matchtext})}`)
+          let _v = _cb.bind(this.fly)()
+          item.textContent = _v
+        }
+      }
+      getMatchList(){
+        this.getText(this.fly.ele)
+      }
+      getText(ele){
+        if(ele.nodeType == Node.TEXT_NODE || ele.childElementCount === 0){
+          let matchs = ele.textContent.match(this.re)
+          if(matchs && matchs.length>0){
+            this.matchList.push({ele, matchs})
+          } 
+          return
+        }
+        let divs = ele.childNodes
+        divs.forEach((item) => {
+          if(item.nodeType == Node.TEXT_NODE || item.childElementCount === 0){
+            let matchs = item.textContent.match(this.re)
+            if (matchs && matchs.length>0){
+              this.matchList.push({ele: item, matchs})
+            }
+            return
+          }else{
+            item.childNodes.forEach((sitem)=>{
+               this.getText(sitem)
+            })
+          }
+        })
+      }
+    }
+    class Fly{
+      constructor(obj){
+        this.ele = typeof obj.ele === 'string' ? document.querySelector(obj.ele) : obj.ele
+        this._data = obj.data()
+        this._olddata = {}
+        this.watchers = {}
+        this.Dep = null
+
+        this.dataToRoot(obj.data())
+        
+        this.watchData()
+
+        this.initData(obj.data())
+        this.watchEvents(obj.methods)
+      }
+      initData(resetData){
+        Object.keys(resetData).forEach((key)=>{
+          this[key] = resetData[key]
+        })
+      }
+      listener(key, cb){
+        if(this.watchers[key]){
+          this.watchers[key].push(cb)
+        }else{
+          this.watchers[key] = [cb]
+        }
+      }
+      dataToRoot(data){
+        Object.keys(data).forEach((key)=>{
+
+          Object.defineProperty(this, key, {
+            set(nv){
+              this._olddata[key] = this._data[key]
+              this._data[key] = nv
+              this.watchers[key] && this.watchers[key].forEach((item) =>{
+                item(nv)
+              })
+            },
+            get(){
+              if(this.Dep){
+                this.listener(key, this.Dep)
+              }
+              this.Dep = null
+              return this._data[key]
+            }
+          })
+
+          this[key] =  undefined
+        })
+      }
+      watchEvents(methods){
+        Object.keys(methods).forEach((key)=> {
+          this.ele.querySelectorAll(`[fyon-click=${key}]`)
+          .forEach((item)=>{
+            item.addEventListener('click', (event) => {
+              methods[key].bind(this)(event)
+            })
+          })
+
+          this.ele.querySelectorAll(`[fyon-change=${key}]`)
+          .forEach((item)=>{
+            item.addEventListener('input', (event) => {
+              methods[key].bind(this)(event)
+            })
+          })
+
+
+        })     
+      }
+      
+      _textContent(){
+
+        let fybrace2 = new FyBrace2(this)
+        let contentCall = ({ele, matchs}) => {
+          matchs.forEach((item)=> {
+            let smatch = item.match(/\w+/g)[0]
+            this.Dep = fybrace2.deal(ele, smatch)
+            let _cb = new Function(`with(this){ return (${smatch})}`)
+            _cb.bind(this)()
+
+          })
+
+        }
+        fybrace2.getMatchList()
+        fybrace2.matchList.forEach(contentCall)
+        
+      }
+   
+      dealFyClass(){
+        this.ele.querySelectorAll(`[fy-class]`)
+        .forEach((item)=>{
+          let attrV = item.getAttribute('fy-class')
+          this.Dep = new fyClass(this).deal(item, attrV)
+          let _classF = new Function(`with(this){ return (${attrV})}`)
+          _classF.bind(this)()
+     
+        })
+      }
+      watchData(){
+
+        this._textContent()
+        this.dealFyClass()
+
+      }
+    }
+    new Fly({
+      ele: '#app',
+      data(){
+        return {
+          value: true, 
+          hello: 'hello world'
+        }
+      },
+      methods: {
+        submit(event){
+          this.value = !this.value 
+        },
+        changeText(){
+          this.hello = '你好'
+        },
+        changehello(event){
+          this.hello = event.target.value
+        }
+      }
+    })
+  </script>
+</body>
+</html>
