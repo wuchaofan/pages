@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>top progress v2</title>
+  <style>
+    html,body{
+      margin: 0;
+    }
+
+  </style>
+</head>
+<body>
+  <script>
+    class TopProgress{
+      constructor(){
+        if(!TopProgress.instance){
+          TopProgress.instance = this;
+        }
+        this.getDiv()
+        this.width = 0
+        this.state = 0 // start
+        this.interID = null
+        return TopProgress.instance
+      }
+      getDiv(){
+        this.topProgress = document.querySelector('.top-progress')
+        
+        if(!this.topProgress){
+          this.topProgress = document.createElement('div')
+          this.topProgress.className = 'top-progress'
+          document.body.appendChild(this.topProgress)
+          this.css('position', 'fixed')
+          this.css('height', '6px')
+          this.css('width', '100%')
+          this.css('backgroundColor', 'rgb(37, 206, 195)')
+          this.css('transform', 'translate3d(-100%, 0px, 0px)')
+          this.css('transition', 'all 0.01s')
+        }
+      }
+      css(key, value){
+        this.topProgress.style[key] = value
+      }
+      static 'set'(pre){
+        let tp = new TopProgress()
+        tp.width = pre * 100
+        tp.css('transition', 'all 0.1s')
+        tp.css('transform', `translate3d(-${100 - this.width}%, 0px, 0px)`)
+      }
+      static start(){
+        let tp = new TopProgress()
+        let topProgress = tp.topProgress
+
+        tp.interID = setInterval(() => {
+          topProgress.offsetWidth
+          topProgress.style.transition ='all 0.01s'
+          topProgress.style.transform = `translate3d(-${100 - tp.width}%, 0,0)`
+          if(tp.state != 1 && tp.width < 90){
+            tp.width += 0.4
+          }
+        }, 10)
+      }
+      static complete(){
+        let tp = new TopProgress()
+        let topProgress = tp.topProgress
+        tp.state = 1
+        tp.css('transition', 'all 0.1s')
+        tp.css('transform', 'translate3d(0, 0,0)')
+        clearInterval(tp.interID)
+        setTimeout(() => {
+          tp.css('backgroundColor', 'rgba(0, 0, 0, 0)')
+        }, 300)
+      }
+    }
+
+    TopProgress.start()
+    new Promise((resolve, reject) => {
+      setTimeout(()=>{
+        resolve(1)
+      }, 2000)
+    }).then((res) => {
+      TopProgress.complete()
+    })
+  </script>
+</body>
+</html>
