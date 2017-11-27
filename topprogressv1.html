@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>top progress v1</title>
+  <style>
+    html,body{
+      margin: 0;
+    }
+    .top-progress{
+      position: fixed;
+      height: 6px;
+      width: 0;
+      background-color: rgb(37, 206, 195);
+      transition: all 0.4s;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-progress">
+  </div>
+  <div></div>
+  <script>
+    let topProgress = document.querySelector('.top-progress')
+    let width = 0
+    let interID = setInterval(() => {
+      if(width >= 100){
+        width = 0
+        clearInterval(interID)
+      }
+      topProgress.style.width = `${width}%`
+      width += 10
+    }, 300)
+    new Promise((resolve, reject) => {
+      setTimeout(()=>{
+        resolve(1)
+      }, 3000)
+    }).then((res) => {
+      topProgress.style.width = '100%'
+      clearInterval(interID)
+      setTimeout(() => {
+        topProgress.style.backgroundColor = 'rgba(0, 0, 0, 0)'
+      }, 800)
+    })
+  </script>
+</body>
+</html>
