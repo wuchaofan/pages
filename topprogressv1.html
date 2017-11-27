@@ -24,20 +24,21 @@
   <div></div>
   <script>
     let topProgress = document.querySelector('.top-progress')
+    let state = 0 // start
     let width = 0
     let interID = setInterval(() => {
-      if(width >= 100){
-        width = 0
-        clearInterval(interID)
-      }
       topProgress.style.width = `${width}%`
-      width += 10
-    }, 300)
+      if(state != 1 && width < 90){
+        width += 10
+      }
+      
+    }, 40)
     new Promise((resolve, reject) => {
       setTimeout(()=>{
         resolve(1)
       }, 3000)
     }).then((res) => {
+      state = 1 // finish
       topProgress.style.width = '100%'
       clearInterval(interID)
       setTimeout(() => {
